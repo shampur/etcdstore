@@ -17,16 +17,16 @@ import (
 
 var ErrNoDatabase = errors.New("no databases available")
 
-// Amount of time for cookies/redis keys to expire.
+// Amount of time for cookies to expire.
 var sessionExpire = 86400 * 30
 
-// EtcdStore stores sessions in a redis backend.
+// EtcdStore stores sessions in a etcd backend.
 type EtcdStore struct {
 	Clientapi     	client.KeysAPI          // etcd client api interface
 	Bucket        	string               	// bucket to store sessions in
 	Codecs        	[]securecookie.Codec 	// session codecs
 	Options       	*sessions.Options    	// default configuration
-	DefaultMaxAge 	int 			// default TTL for a MaxAge == 0 session
+	DefaultMaxAge 	int 					// default TTL for a MaxAge == 0 session
 	StoreMutex 	sync.RWMutex
 }
 
@@ -86,7 +86,7 @@ func (s *EtcdStore) Save(r *http.Request, w http.ResponseWriter, session *sessio
 		}
 		http.SetCookie(w, sessions.NewCookie(session.Name(), "", session.Options))
 	} else {
-		// Build an alphanumeric key for the redis store.
+		// Build an alphanumeric key for the etcd store
 		if session.ID == "" {
 			session.ID = strings.TrimRight(base32.StdEncoding.EncodeToString(securecookie.GenerateRandomKey(32)), "=")
 		}
@@ -108,7 +108,6 @@ func (s *EtcdStore) save(session *sessions.Session) error {
 	if err != nil {
 		return err
 	}
-	//var ctx = context.Background()
 	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
 	defer cancel()
 	s.StoreMutex.Lock()
@@ -122,7 +121,6 @@ func (s *EtcdStore) save(session *sessions.Session) error {
 // load reads the session from Etcd and updates the session.Values
 func (s *EtcdStore) load(session *sessions.Session) error {
 
-	//var ctx = context.Background()
 	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
 	defer cancel()
 	s.StoreMutex.Lock()
@@ -143,7 +141,6 @@ func (s *EtcdStore) load(session *sessions.Session) error {
 // delete removes keys from Etcd if MaxAge<0
 func (s *EtcdStore) Delete(session *sessions.Session) error {
 
-	//var ctx = context.Background()
 	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
 	defer cancel()
 	s.StoreMutex.Lock()
