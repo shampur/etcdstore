@@ -57,21 +57,17 @@ func NewEtcdStore(etcdaddr []string, bucket string, keyPairs ...[]byte) *EtcdSto
 
 // Get returns a session for the given name after adding it to the registry.
 func (s *EtcdStore) Get(r *http.Request, name string) (*sessions.Session, error) {
-	fmt.Println("get session called")
 	return sessions.GetRegistry(r).Get(s, name)
 }
 
 // New returns a session for the given name without adding it to the registry.
 func (s *EtcdStore) New(r *http.Request, name string) (*sessions.Session, error) {
-	fmt.Println("New ssession etcd store called")
 	var err error
 	session := sessions.NewSession(s, name)
 	opts := *s.Options
 	session.Options = &opts
 	session.IsNew = true
 	if c, errCookie := r.Cookie(name); errCookie == nil {
-		fmt.Println("cookie found in request")
-		fmt.Println("cookie details Name= ", c.Name, "cookie value =", c.Value)
 		err = securecookie.DecodeMulti(name, c.Value, &session.ID, s.Codecs...)
 		if err == nil {
 			err := s.load(session)
@@ -84,8 +80,6 @@ func (s *EtcdStore) New(r *http.Request, name string) (*sessions.Session, error)
 // Save adds a single session to the response.
 func (s *EtcdStore) Save(r *http.Request, w http.ResponseWriter, session *sessions.Session) error {
 	// Marked for deletion.
-	fmt.Println("Save called from login response")
-	fmt.Println("session.Options.maxage = ", session.Options.MaxAge)
 	if session.Options.MaxAge < 0 {
 		if err := s.Delete(session); err != nil {
 			return err
@@ -110,7 +104,6 @@ func (s *EtcdStore) Save(r *http.Request, w http.ResponseWriter, session *sessio
 
 // save stores the session in Etcd.
 func (s *EtcdStore) save(session *sessions.Session) error {
-	fmt.Println("small save called")
 	encoded, err := securecookie.EncodeMulti(session.Name(), session.Values, s.Codecs...)
 	if err != nil {
 		return err
@@ -121,7 +114,6 @@ func (s *EtcdStore) save(session *sessions.Session) error {
 	s.StoreMutex.Lock()
 	key := "session_" + session.ID
 	resp, err := s.Clientapi.Set(ctx, "/" + s.Bucket + "/" + key, encoded, nil)
-	fmt.Println("etcd response set = ", resp)
 	s.StoreMutex.Unlock()
 	return err
 }
@@ -130,14 +122,12 @@ func (s *EtcdStore) save(session *sessions.Session) error {
 // load reads the session from Etcd and updates the session.Values
 func (s *EtcdStore) load(session *sessions.Session) error {
 
-	fmt.Println("load called")
 	//var ctx = context.Background()
 	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
 	defer cancel()
 	s.StoreMutex.Lock()
 	key := "session_" + session.ID
 	resp, err := s.Clientapi.Get(ctx, "/" + s.Bucket + "/" + key, nil)
-	fmt.Println("etcd response get = ", resp)
 	s.StoreMutex.Unlock()
 	if err != nil {
 		return err
@@ -153,14 +143,12 @@ func (s *EtcdStore) load(session *sessions.Session) error {
 // delete removes keys from Etcd if MaxAge<0
 func (s *EtcdStore) Delete(session *sessions.Session) error {
 
-	fmt.Println("delete called")
 	//var ctx = context.Background()
 	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
 	defer cancel()
 	s.StoreMutex.Lock()
 	key := "session_" + session.ID
 	resp, err := s.Clientapi.Delete(ctx, "/" + s.Bucket + "/" + key, nil)
-	fmt.Println("etcd response delete = ", resp)
 	s.StoreMutex.Unlock()
 	return err
 }
