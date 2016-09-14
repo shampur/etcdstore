@@ -11,7 +11,6 @@ import (
 	"github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
 	"sync"
-	"fmt"
 	"time"
 )
 
@@ -112,7 +111,7 @@ func (s *EtcdStore) save(session *sessions.Session) error {
 	defer cancel()
 	s.StoreMutex.Lock()
 	key := "session_" + session.ID
-	resp, err := s.Clientapi.Set(ctx, "/" + s.Bucket + "/" + key, encoded, nil)
+	_, err = s.Clientapi.Set(ctx, "/" + s.Bucket + "/" + key, encoded, nil)
 	s.StoreMutex.Unlock()
 	return err
 }
@@ -145,7 +144,7 @@ func (s *EtcdStore) Delete(session *sessions.Session) error {
 	defer cancel()
 	s.StoreMutex.Lock()
 	key := "session_" + session.ID
-	resp, err := s.Clientapi.Delete(ctx, "/" + s.Bucket + "/" + key, nil)
+	_, err := s.Clientapi.Delete(ctx, "/" + s.Bucket + "/" + key, nil)
 	s.StoreMutex.Unlock()
 	return err
 }
